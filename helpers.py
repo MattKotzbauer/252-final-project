@@ -1,5 +1,6 @@
 import subprocess
 import os
+import re
 
 # Class for expressing queries: consists of query type, subject, predicate, and object
 class Query:
@@ -18,7 +19,7 @@ class Query:
             ''' + self.subject + '''
             (set->list
             (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-            '("''' + self.predicate + ''' "))) 
+            '("''' + self.predicate + '''"))) 
             (set->list
             (get-descendent-curies*-in-db
             (curies->synonyms-in-db (list "''' + self.object + '''"))))))'''
@@ -41,7 +42,7 @@ class Query:
             ''' + self.subject + '''
             (set->list
             (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-            '("''' + self.predicate + ''' ")))
+            '("''' + self.predicate + '''")))
             (set->list
             (get-descendent-curies*-in-db
             (curies->synonyms-in-db (list "''' + self.subject + '''"))))
@@ -71,6 +72,30 @@ class Query:
             (set->list
             (get-descendent-curies*-in-db
             (list "''' + self.object + '''"))))'''
+
+# Define a 'hop' between the results of two queries
+def hop(list1, list2):
+    list1.sort(key=lambda x: x[-1])
+    list2.sort(key=lambda x: x[0])
+    new_list = []
+    i, j = 0, 0
+    while i < len(list1) and j < len(list2):
+        if list1[i][-1] == list2[j][0]:
+            new_list.append([list1[i], list2[j]])
+            i += 1
+            j += 1
+        elif list1[i][-1] < list2[j][0]:
+            i += 1
+        else:
+            j += 1
+    return new_list
+
+# Parse query output by checking for "a" "b" "c" format
+def parse_output(data):
+    pattern = r'\"([^\"]+)\"\s+\"([^\"]+)\"\s+\"([^\"]+)\"'
+    matches = re.findall(pattern, data)
+    result = [list(match) for match in matches]
+    return result
 
 # Writes the query (expressed as string) to the specified file path
 def write(file_path, write_string):
