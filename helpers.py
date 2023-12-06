@@ -73,25 +73,8 @@ class Query:
             (get-descendent-curies*-in-db
             (list "''' + self.object + '''"))))'''
 
-# Define a 'hop' between the results of two queries
-def hop(list1, list2):
-    list1.sort(key=lambda x: x[-1])
-    list2.sort(key=lambda x: x[0])
-    new_list = []
-    i, j = 0, 0
-    while i < len(list1) and j < len(list2):
-        if list1[i][-1] == list2[j][0]:
-            new_list.append([list1[i], list2[j]])
-            i += 1
-            j += 1
-        elif list1[i][-1] < list2[j][0]:
-            i += 1
-        else:
-            j += 1
-    return new_list
-
-# Parse query output by checking for "a" "b" "c" format
-def parse_output(data):
+# Translate query output string to table by checking for "a" "b" "c" format
+def table_output(data):
     pattern = r'\"([^\"]+)\"\s+\"([^\"]+)\"\s+\"([^\"]+)\"'
     matches = re.findall(pattern, data)
     result = [list(match) for match in matches]
@@ -181,7 +164,37 @@ def write_and_run(file_path, write_string):
         print("Output:", stdout.decode())
         return stdout.decode()
 
+# Define a 'hop' between the table results of two queries
+def hop(list1, list2):
+    list1.sort(key=lambda x: x[-1])
+    list2.sort(key=lambda x: x[0])
+    new_list = []
+    i, j = 0, 0
+    while i < len(list1) and j < len(list2):
+        if list1[i][-1] == list2[j][0]:
+            new_list.append([list1[i], list2[j]])
+            i += 1
+            j += 1
+        elif list1[i][-1] < list2[j][0]:
+            i += 1
+        else:
+            j += 1
+    return new_list
 
+# Define a 'hop' between two members of Query class
+def query_hop(query1, query2, file_path):
+    query_string1 = query1.assemble_query()
+    query_string2 = query2.assemble_query()
+
+    output1 = write_and_run(file_path, query_string1)
+    parsed_output1 = table_output(output1)
+
+    output2 = write_and_run(file_path, query_string2)
+    parsed_output2 = table_output(output2)
+
+    hop_result = hop(parsed_output1, parsed_output2)
+
+    return hop_result
 
 
 

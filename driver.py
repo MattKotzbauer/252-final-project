@@ -1,4 +1,4 @@
-from helpers import Query, write, run, write_and_run, parse_output
+from helpers import *
 ALL = "#f"
 
 # Initialize member of query class
@@ -15,8 +15,15 @@ sample_path = '/home/matt/mediKanren/contrib/medikanren2/neo/Matt_K/generated_qu
 query_output = write_and_run(sample_path, sample_default_query)
 
 # Create formatted table from terminal output
-table_output = parse_output(query_output)
+table_output = table_output(query_output)
 
 # (Print formatted table)
 print(table_output)
+
+# Create second sample query and use to demonstrate multi-hop queries
+sample_query2 = Query(type="Known->X", subject="PUBCHEM.COMPOUND:5291", predicate="biolink:regulates", object=ALL)
+sample_hop = query_hop(sample_query2, sample_query1, sample_path)
+
+
+
 
