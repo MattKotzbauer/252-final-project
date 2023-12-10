@@ -1,5 +1,9 @@
 
+__Matt Kotzbauer: CS252R Final Project__
 
+
+
+For those wanting to try out the helper functions, I'll put below a list of them and their typings.
 
 
 ```python
@@ -15,10 +19,10 @@ assemble_base_query(input_query: Query) -> str:
 # Writes string as Racket script to file path
 write(file_path: str, write_string: str) -> void
 
-# Runs Racket script specified by file path
+# Runs Racket script specified by file path (returns the terminal output from the query)
 run(file_path: str) -> str
 
-# Combination of write and run functions: writes string as Racket script to file path and runs it
+# Combination of write and run functions: writes string as Racket script to file path and runs it (returns the terminal output from the query)
 write_and_run(file_path: str, write_string: str) -> str
 
 # Translate query output string to table by parsing in Python
