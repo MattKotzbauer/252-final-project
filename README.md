@@ -11,6 +11,7 @@ assemble_base_query(input_query: Query) -> str:
 
 
 Writes string as Racket script to file path
+
 write(file_path: str, write_string: str) -> void
 
 Runs Racket script specified by file path
