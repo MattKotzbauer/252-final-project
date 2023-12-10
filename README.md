@@ -1,34 +1,25 @@
 
 
+
+
 ```python
-# Initialize member of query class
-sample_query = Query(type="X->Known", subject=ALL, predicate="biolink:regulates", object="HGNC:3236")
-
-# Assemble query string based on class member
-sample_default_query = sample_query.assemble_query()
-
-# Write query to file and run it
-query_output = write_and_run("~/mediKanren/query.rkt", sample_default_query)
-
-
-Default assembly of query (as seen in regulates-EGFR, diabetes-causes, and diabetes-treatments)
+# Default assembly of query (as seen in regulates-EGFR, diabetes-causes, and diabetes-treatments)
 assemble_query(input_query: Query) -> str:
 
-Assembly of query that uses buckets to be faster (as seen in regulates-EGFR-faster and imatinib-regulates-faster)
+# Assembly of query that uses buckets to be faster (as seen in regulates-EGFR-faster and imatinib-regulates-faster)
 assemble_fast_query(input_query: Query) -> str:
 
-Assembly of minimal-syntax query
+# Assembly of minimal-syntax query
 assemble_base_query(input_query: Query) -> str:
 
 
-Writes string as Racket script to file path
-
+# Writes string as Racket script to file path
 write(file_path: str, write_string: str) -> void
 
-Runs Racket script specified by file path
+# Runs Racket script specified by file path
 run(file_path: str) -> str
 
-Combination of write and run functions: writes string as Racket script to file path and runs it
+# Combination of write and run functions: writes string as Racket script to file path and runs it
 write_and_run(file_path: str, write_string: str) -> str
 
 k
