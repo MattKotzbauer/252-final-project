@@ -2,6 +2,15 @@ import subprocess
 import os
 import re
 
+
+def lisp_string_list(input_item: str):
+    if isinstance(input_item, list):
+        return ' '.join(f'"{item}"' for item in input_item)
+    elif isinstance(input_item, str):
+        return f'"{input_item}"'
+    else:
+        return "Invalid input: input must be a list or a string."
+
 # Class for expressing queries: consists of query type, subject, predicate, and object
 class Query:
     def __init__(self, type, subject, predicate, object):
@@ -11,7 +20,7 @@ class Query:
         self.object = object
 
     # Default assembly of query (as seen in regulates-EGFR, diabetes-causes, and diabetes-treatments)
-    def assemble_query(self):
+    def assemble_query(self)-> str:
         if "scored" in self.type:
             raise ValueError("Application of scored query should use assemble_fast_query rather than assemble_query \nQuery info: \n type: " + self.type + "\n subject: " + self.subject + "\n predicate: " + self.predicate + "\n object: " + self.object)
         if self.type == "X->Known":
@@ -19,22 +28,35 @@ class Query:
             ''' + self.subject + '''
             (set->list
             (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
-            '("''' + self.predicate + '''"))) 
+            '("''' + self.predicate + '''")''' + ''')) 
             (set->list
             (get-descendent-curies*-in-db
-            (curies->synonyms-in-db (list "''' + self.object + '''"))))))'''
+            (curies->synonyms-in-db (list ''' + lisp_string_list(self.object) + '''))))))'''
         elif self.type == "Known->X":
             return '''(time (query:''' + self.type + '''
             (set->list
             (get-descendent-curies*-in-db
-            (curies->synonyms-in-db (list "''' + self.subject + '''"))))
+            (curies->synonyms-in-db (list ''' + lisp_string_list(self.subject) + '''))))
             (set->list
             (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
             '("''' + self.predicate + '''")))
             ''' + self.object + ''')))'''
+        elif self.type == "Known->Known":
+            return '''(query:''' + self.type + '''
+            (set->list
+            (get-descendent-curies*-in-db
+            (curies->synonyms-in-db
+            (list ''' + lisp_string_list(self.subejct) + '''))))
+            (set->list
+            (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+            '("''' + self.predicate + '''")))
+            (set->list
+            (get-descendent-curies*-in-db
+            (curies->synonyms-in-db
+            (list ''' +  lisp_string_list(self.object) + ''')))))'''
 
     # Assembly of query that uses buckets to be faster (as seen in regulates-EGFR-faster and imatinib-regulates-faster)
-    def assemble_fast_query(self):
+    def assemble_fast_query(self) -> str:
         if "scored" not in self.type:
             raise ValueError("Application of unscored-type query should not use assemble_fast_query \nQuery info: \n type: " + self.type + "\n subject: " + self.subject + "\n predicate: " + self.predicate + "\n object: " + self.object)
         if self.type == "X->Known-scored":
@@ -45,22 +67,23 @@ class Query:
             '("''' + self.predicate + '''")))
             (set->list
             (get-descendent-curies*-in-db
-            (curies->synonyms-in-db (list "''' + self.subject + '''"))))
+            (curies->synonyms-in-db (list ''' + lisp_string_list(self.object) + '''))))
             TOP_BUCKET_NUMBERS
             ))'''
         elif self.type == "Known->X-scored":
             return '''(time (query:''' + self.type + '''
             (set->list
             (get-descendent-curies*-in-db
-            (curies->synonyms-in-db (list " '''+ self.subject + '''"))))
+            (curies->synonyms-in-db (list '''+ lisp_string_list(self.subject) + '''))))
             (set->list
             (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
             '("''' + self.predicate + '''")))
             ''' + self.object + '''
             TOP_BUCKET_NUMBERS))'''
+        # (query: Known->Known does not yet support the faster version)
 
     # Assembly of minimal-syntax query
-    def assemble_base_query(self):
+    def assemble_base_query(self) -> str:
         if "scored" in self.type:
             raise ValueError("Application of scored query should use assemble_fast_query rather than assemble_base_query \nQuery info: \n type: " + self.type + "\n subject: " + self.subject + "\n predicate: " + self.predicate + "\n object: " + self.object)
         if self.type == "X->Known":
@@ -71,17 +94,48 @@ class Query:
             '("''' + self.predicate + ''' "))) 
             (set->list
             (get-descendent-curies*-in-db
-            (list "''' + self.object + '''"))))'''
+            (list ''' + lisp_string_list(self.object) + '''))))'''
+        elif self.type == "Known->X":
+            return '''(query:''' + self.type + '''
+            (set->list
+            (get-descendent-curies*-in-db
+            (list ''' + lisp_string_list(self.subject) + ''')))
+            (set->list
+            (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
+            '("''' + self.predicate + '''")))
+            ''' + self.object + '''))'''
 
-# Translate query output string to table by checking for "a" "b" "c" format
-def table_output(data):
-    pattern = r'\"([^\"]+)\"\s+\"([^\"]+)\"\s+\"([^\"]+)\"'
-    matches = re.findall(pattern, data)
-    result = [list(match) for match in matches]
-    return result
+# Translate query output string to table by checking for "a" "b" "c" ( format, and creating following list
+def table_output(data: str):
+    series_pattern = r'\"([^\"]+)\"\s+\"([^\\""]+)\"\s+\"([^\\""]+)\"\s+\('
+
+    series_matches = [(m.start(0), m.end(0)) for m in re.finditer(series_pattern, data)]
+
+    full_list = []
+    last_end = 0
+    for start, end in series_matches:
+        if last_end != 0:
+            dict_data = data[last_end:start]
+            nested_pattern = r'\(\"([^\"]+)\"\s+(.*?)\)'
+            dict_matches = re.findall(nested_pattern, dict_data)
+            dict_result = {k: v.strip('"').split('" "') for k, v in dict_matches}
+            full_list[-1].append(dict_result)
+
+        series_data = data[start:end-1] # Exclude the last '('
+        full_list.append(list(re.findall(r'\"([^\"]+)\"', series_data)))
+        last_end = end
+
+    if last_end != 0:
+        dict_data = data[last_end:]
+        nested_pattern = r'\(\"([^\"]+)\"\s+(.*?)\)'
+        dict_matches = re.findall(nested_pattern, dict_data)
+        dict_result = {k: v.strip('"').split('" "') for k, v in dict_matches}
+        full_list[-1].append(dict_result)
+
+    return full_list
 
 # Writes the query (expressed as string) to the specified file path
-def write(file_path, write_string):
+def write(file_path: str, write_string: str):
     write_string = '''
     #lang racket/base
 
@@ -110,7 +164,7 @@ def write(file_path, write_string):
         file.write(write_string)
 
 # Runs the racket script in the designated file path
-def run(file_path):
+def run(file_path: str):
     command = f"racket {file_path}"
     print(command)
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -125,7 +179,7 @@ def run(file_path):
 
 
 # Combination of the write and run functions: writes the query string to the file, and then runs it
-def write_and_run(file_path, write_string):
+def write_and_run(file_path: str, write_string: str):
     write_string = '''
     #lang racket/base
 
@@ -165,24 +219,24 @@ def write_and_run(file_path, write_string):
         return stdout.decode()
 
 # Define a 'hop' between the table results of two queries
-def hop(list1, list2):
-    list1.sort(key=lambda x: x[-1])
-    list2.sort(key=lambda x: x[0])
+def table_hop(table1, table2):
+    table1.sort(key=lambda x: x[-2])
+    table2.sort(key=lambda x: x[0])
     new_list = []
     i, j = 0, 0
-    while i < len(list1) and j < len(list2):
-        if list1[i][-1] == list2[j][0]:
-            new_list.append([list1[i], list2[j]])
+    while i < len(table1) and j < len(table2):
+        if table1[i][-2] == table2[j][0]:
+            new_list.append([table1[i], table2[j]])
             i += 1
             j += 1
-        elif list1[i][-1] < list2[j][0]:
+        elif table1[i][-2] < table2[j][0]:
             i += 1
         else:
             j += 1
     return new_list
 
 # Define a 'hop' between two members of Query class
-def query_hop(query1, query2, file_path):
+def query_hop(query1: Query, query2: Query, file_path: str):
     query_string1 = query1.assemble_query()
     query_string2 = query2.assemble_query()
 
@@ -192,9 +246,8 @@ def query_hop(query1, query2, file_path):
     output2 = write_and_run(file_path, query_string2)
     parsed_output2 = table_output(output2)
 
-    hop_result = hop(parsed_output1, parsed_output2)
+    hop_result = table_hop(parsed_output1, parsed_output2)
 
     return hop_result
-
 
 
