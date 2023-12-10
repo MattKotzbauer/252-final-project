@@ -1,5 +1,16 @@
 
 
+```python
+# Initialize member of query class
+sample_query = Query(type="X->Known", subject=ALL, predicate="biolink:regulates", object="HGNC:3236")
+
+# Assemble query string based on class member
+sample_default_query = sample_query.assemble_query()
+
+# Write query to file and run it
+query_output = write_and_run("~/mediKanren/query.rkt", sample_default_query)
+
+
 Default assembly of query (as seen in regulates-EGFR, diabetes-causes, and diabetes-treatments)
 assemble_query(input_query: Query) -> str:
 
