@@ -1,7 +1,7 @@
 
 __Matt Kotzbauer: CS252R Final Project__
 
-My final project for CS252R. Attached to this repo are the following: 
+As my CS252R final project, I built a Python-based DSL for running mediKanren queries. Attached to this repo are the following: 
 
 helpers.py: helper file in which the Query class and relevant functions are defined
 
