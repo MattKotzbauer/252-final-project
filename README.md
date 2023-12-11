@@ -1,7 +1,7 @@
 
 __Matt Kotzbauer: CS252R Final Project__
 
-
+My final project for CS252R - for background on the project, refer to report.pdf. 
 
 For those wanting to try out the helper functions, I'll put below a list of them and their typings.
 
