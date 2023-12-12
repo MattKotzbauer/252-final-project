@@ -40,7 +40,7 @@ class Query:
             (set->list
             (get-non-deprecated-mixed-ins-and-descendent-predicates*-in-db
             '("''' + self.predicate + '''")))
-            ''' + self.object + ''')))'''
+            ''' + self.object + '''))'''
         elif self.type == "Known->Known":
             return '''(query:''' + self.type + '''
             (set->list
@@ -105,23 +105,28 @@ class Query:
             '("''' + self.predicate + '''")))
             ''' + self.object + '''))'''
 
-# Translate query output string to table by checking for "a" "b" "c" ( format, and creating following list
+# Translate query output string to table 
 def table_output(data: str):
+    # Check for "a" "b" "c" ( format
     series_pattern = r'\"([^\"]+)\"\s+\"([^\\""]+)\"\s+\"([^\\""]+)\"\s+\('
 
     series_matches = [(m.start(0), m.end(0)) for m in re.finditer(series_pattern, data)]
 
+    # Assemble list of lists from matches
     full_list = []
     last_end = 0
+    # Iterate over structure matches
     for start, end in series_matches:
         if last_end != 0:
             dict_data = data[last_end:start]
+            # Check for nested parens pattern
             nested_pattern = r'\(\"([^\"]+)\"\s+(.*?)\)'
             dict_matches = re.findall(nested_pattern, dict_data)
+            # Create dict from matches
             dict_result = {k: v.strip('"').split('" "') for k, v in dict_matches}
             full_list[-1].append(dict_result)
-
-        series_data = data[start:end-1] # Exclude the last '('
+        series_data = data[start:end-1] 
+        # Append subject, predicate, object
         full_list.append(list(re.findall(r'\"([^\"]+)\"', series_data)))
         last_end = end
 
@@ -249,5 +254,4 @@ def query_hop(query1: Query, query2: Query, file_path: str):
     hop_result = table_hop(parsed_output1, parsed_output2)
 
     return hop_result
-
 
