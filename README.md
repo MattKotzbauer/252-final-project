@@ -1,5 +1,5 @@
 
-__Matt Kotzbauer: CS252R Final Project__
+<h2>Matt Kotzbauer: CS252R Final Project</h2>
 
 As my CS252R final project, I built a Python-based DSL for running mediKanren queries. Attached to this repo are the following: 
 
